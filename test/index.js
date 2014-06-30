@@ -1,12 +1,14 @@
-var express = require('express')
-  , request = require('superagent')
-  , csv = require('../')
-  , app = express.createServer();
+var express = require('express'),
+    request = require('superagent'),
+    csv = require('../'),
+    app = express.createServer();
+
+var UTF8_BOM = '\xEF\xBB\xBF';
 
 app.get('/test/1', function(req, res) {
   res.csv([
-    ['a', 'b', 'c']
-  , ['d', 'e', 'f']
+    ['a', 'b', 'c'],
+    ['d', 'e', 'f']
   ]);
 });
 
@@ -37,24 +39,24 @@ describe('express-csv', function() {
   });
 
   it('should expose .separator', function() {
-    csv.separator.should.be.a('string');
+    csv.separator.should.be.a.String;
   });
 
   it('should expose .preventCast', function() {
-    csv.preventCast.should.be.a('boolean');
+    csv.preventCast.should.be.a.Boolean;
   });
-  
+
   it('should expose .ignoreNullOrUndefined', function() {
-    csv.ignoreNullOrUndefined.should.be.a('boolean');
+    csv.ignoreNullOrUndefined.should.be.a.Boolean;
   });
 
   it('should extend res.csv', function() {
     if (express.version.match(/^2\.[0-9]+\.[0-9]+$/)) {
       // express 2.x
-      require('http').ServerResponse.prototype.csv.should.be.a('function');
+      require('http').ServerResponse.prototype.csv.should.be.a.Function;
     } else {
       // express 3.x
-      require('express').response.csv.should.be.a('function');
+      require('express').response.csv.should.be.a.Function;
     }
   });
 });
@@ -70,7 +72,7 @@ describe('res.csv()', function() {
         request
           .get('http://127.0.0.1:8383/test/objectArray')
           .end(function(res) {
-            rows = res.text.split("\r\n");
+            rows = res.text.replace(UTF8_BOM, "").split("\r\n");
             done();
           });
       });
@@ -99,7 +101,7 @@ describe('res.csv()', function() {
         request
           .get('http://127.0.0.1:8383/test/objectArray')
           .end(function(res) {
-            rows = res.text.split("\r\n");
+            rows = res.text.replace(UTF8_BOM, "").split("\r\n");
             done();
           });
       });
@@ -122,10 +124,10 @@ describe('res.csv()', function() {
   });
 
   it('should response csv', function(done) {
-    request 
+    request
       .get('http://127.0.0.1:8383/test/1')
       .end(function(res) {
-        res.text.should.equal('"a","b","c"\r\n"d","e","f"\r\n');
+        res.text.should.equal(UTF8_BOM + '"a","b","c"\r\n"d","e","f"\r\n');
         done();
       });
   });
@@ -143,7 +145,7 @@ describe('res.csv()', function() {
     request
       .get('http://127.0.0.1:8383/test/2')
       .end(function(res) {
-        res.text.should.equal('"a","b",\r\n');
+        res.text.should.equal(UTF8_BOM + '"a","b",\r\n');
         done();
       });
   });
@@ -152,7 +154,7 @@ describe('res.csv()', function() {
     request
       .get('http://127.0.0.1:8383/test/3')
       .end(function(res) {
-        res.text.should.equal('"a","b",\r\n');
+        res.text.should.equal(UTF8_BOM + '"a","b",\r\n');
         done();
       });
   });
@@ -164,7 +166,7 @@ describe('res.csv()', function() {
       .get('http://127.0.0.1:8383/test/2')
       .end(function(res) {
         csv.ignoreNullOrUndefined = prevOption;
-        res.text.should.equal('"a","b","null"\r\n');
+        res.text.should.equal(UTF8_BOM + '"a","b","null"\r\n');
         done();
       });
   });
@@ -176,7 +178,7 @@ describe('res.csv()', function() {
       .get('http://127.0.0.1:8383/test/3')
       .end(function(res) {
         csv.ignoreNullOrUndefined = prevOption;
-        res.text.should.equal('"a","b","undefined"\r\n');
+        res.text.should.equal(UTF8_BOM + '"a","b","undefined"\r\n');
         done();
       });
   });
@@ -188,7 +190,7 @@ describe('res.csv()', function() {
       .get('http://127.0.0.1:8383/test/1')
       .end(function(res) {
         csv.separator = prevSeparator;
-        res.text.should.equal('"a"\t"b"\t"c"\r\n"d"\t"e"\t"f"\r\n');
+        res.text.should.equal(UTF8_BOM + '"a"\t"b"\t"c"\r\n"d"\t"e"\t"f"\r\n');
         done();
       });
   });
@@ -200,8 +202,19 @@ describe('res.csv()', function() {
       .get('http://127.0.0.1:8383/test/1')
       .end(function(res) {
         csv.preventCast = prevSetting;
-        res.text.should.equal('="a",="b",="c"\r\n="d",="e",="f"\r\n');
+        res.text.should.equal(UTF8_BOM + '="a",="b",="c"\r\n="d",="e",="f"\r\n');
         done();
       });
   });
+
+  it('should response csv with BOM', function(done) {
+    request.charset = 'utf-8';
+    request
+      .get('http://127.0.0.1:8383/test/1')
+      .end(function(res) {
+        res.text.should.equal(UTF8_BOM + '"a","b","c"\r\n"d","e","f"\r\n');
+        done();
+      });
+  });
+
 });
