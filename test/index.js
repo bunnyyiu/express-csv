@@ -3,7 +3,7 @@ var express = require('express'),
     csv = require('../'),
     app = express.createServer();
 
-var UTF8_BOM = '\xEF\xBB\xBF';
+var UTF8_BOM = '\uFEFF';
 
 app.get('/test/1', function(req, res) {
   res.csv([
